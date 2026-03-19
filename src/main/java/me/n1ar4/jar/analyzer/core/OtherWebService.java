@@ -1,0 +1,50 @@
+/*
+ * GPLv3 License
+ *
+ * Copyright (c) 2022-2026 4ra1n (Jar Analyzer Team)
+ *
+ * This project is distributed under the GPLv3 license.
+ *
+ * https://github.com/jar-analyzer/jar-analyzer/blob/master/LICENSE
+ */
+
+package me.n1ar4.jar.analyzer.core;
+
+import me.n1ar4.jar.analyzer.core.asm.JavaWebClassVisitor;
+import me.n1ar4.jar.analyzer.engine.EngineConst;
+import me.n1ar4.jar.analyzer.engine.log.LogManager;
+import me.n1ar4.jar.analyzer.engine.log.Logger;
+import me.n1ar4.jar.analyzer.engine.utils.StackMapFrameHandler;
+import me.n1ar4.jar.analyzer.entity.ClassFileEntity;
+import org.objectweb.asm.ClassReader;
+
+import java.util.ArrayList;
+import java.util.Set;
+
+public class OtherWebService {
+    private static final Logger logger = LogManager.getLogger();
+
+    public static void start(
+            Set<ClassFileEntity> classFileList,
+            ArrayList<String> interceptors,
+            ArrayList<String> servlets,
+            ArrayList<String> filters,
+            ArrayList<String> listeners) {
+        for (ClassFileEntity file : classFileList) {
+            try {
+                JavaWebClassVisitor jcv = new JavaWebClassVisitor(interceptors, servlets, filters, listeners);
+                ClassReader cr = new ClassReader(file.getFile());
+                cr.accept(jcv, EngineConst.AnalyzeASMOptions);
+            } catch (IndexOutOfBoundsException e) {
+                // Handle corrupted StackMapTable by falling back to SKIP_FRAMES mode
+                if (!StackMapFrameHandler.handleParseException(file,
+                        new JavaWebClassVisitor(interceptors, servlets, filters, listeners),
+                        logger, "java web analysis", e)) {
+                    logger.error("error: {}", e.getMessage());
+                }
+            } catch (Exception e) {
+                logger.error("error: {}", e.getMessage());
+            }
+        }
+    }
+}
