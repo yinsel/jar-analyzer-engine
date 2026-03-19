@@ -48,8 +48,8 @@ public class SpringService {
                     e.printStackTrace(ps);
                     ps.flush();
                     ps.close();
-                    System.out.println("#################### SPRING ANALYZE ERROR ####################");
-                    System.out.print(bao);
+                    logger.error("#################### SPRING ANALYZE ERROR ####################");
+                    logger.error("{}", bao);
                 }
             } catch (Exception e) {
                 ByteArrayOutputStream bao = new ByteArrayOutputStream();
@@ -57,8 +57,8 @@ public class SpringService {
                 e.printStackTrace(ps);
                 ps.flush();
                 ps.close();
-                System.out.println("#################### SPRING ANALYZE ERROR ####################");
-                System.out.print(bao);
+                logger.error("#################### SPRING ANALYZE ERROR ####################");
+                logger.error("{}", bao);
             }
         }
     }

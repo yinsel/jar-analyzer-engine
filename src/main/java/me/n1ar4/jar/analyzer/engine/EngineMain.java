@@ -24,9 +24,8 @@ public class EngineMain {
 
     @SuppressWarnings("all")
     public static void main(String[] args) {
-        System.out.println("=== Jar Analyzer Engine " + EngineConst.version + " ===");
-        System.out.println("Build SQLite database from JAR/WAR files");
-        System.out.println();
+        logger.info("=== Jar Analyzer Engine {} ===", EngineConst.version);
+        logger.info("Build SQLite database from JAR/WAR files");
 
         EngineBuildCmd cmd = new EngineBuildCmd();
         JCommander jc = JCommander.newBuilder()
@@ -37,7 +36,7 @@ public class EngineMain {
         try {
             jc.parse(args);
         } catch (Exception e) {
-            System.err.println("Error: " + e.getMessage());
+            logger.error("Error: {}", e.getMessage());
             jc.usage();
             System.exit(1);
             return;
@@ -49,7 +48,7 @@ public class EngineMain {
         }
 
         if (cmd.jarPath == null || cmd.jarPath.isEmpty()) {
-            System.err.println("Error: --jar parameter is required");
+            logger.error("Error: --jar parameter is required");
             jc.usage();
             System.exit(1);
             return;
@@ -57,7 +56,7 @@ public class EngineMain {
 
         Path jarPath = Paths.get(cmd.jarPath);
         if (!Files.exists(jarPath)) {
-            System.err.println("Error: JAR path does not exist: " + cmd.jarPath);
+            logger.error("Error: JAR path does not exist: {}", cmd.jarPath);
             System.exit(1);
             return;
         }
@@ -76,7 +75,7 @@ public class EngineMain {
             if (Files.exists(rtPath)) {
                 config.setRtJarPath(rtPath);
             } else {
-                System.err.println("Warning: rt.jar path does not exist: " + cmd.rtJarPath);
+                logger.warn("rt.jar path does not exist: {}", cmd.rtJarPath);
             }
         }
 
@@ -86,7 +85,7 @@ public class EngineMain {
                 config.setClassBlackList(new String(Files.readAllBytes(
                         Paths.get(cmd.classBlackListFile))));
             } catch (IOException e) {
-                System.err.println("Warning: cannot read black list file: " + cmd.classBlackListFile);
+                logger.warn("cannot read black list file: {}", cmd.classBlackListFile);
             }
         } else if (cmd.classBlackList != null) {
             config.setClassBlackList(cmd.classBlackList);
@@ -98,24 +97,23 @@ public class EngineMain {
                 config.setClassWhiteList(new String(Files.readAllBytes(
                         Paths.get(cmd.classWhiteListFile))));
             } catch (IOException e) {
-                System.err.println("Warning: cannot read white list file: " + cmd.classWhiteListFile);
+                logger.warn("cannot read white list file: {}", cmd.classWhiteListFile);
             }
         } else if (cmd.classWhiteList != null) {
             config.setClassWhiteList(cmd.classWhiteList);
         }
 
         // Print config summary
-        System.out.println("Configuration:");
-        System.out.println("  JAR Path:      " + config.getJarPath());
-        System.out.println("  DB Path:       jar-analyzer.db");
-        System.out.println("  Temp Dir:      " + EngineConst.tempDir);
-        System.out.println("  Quick Mode:    " + config.isQuickMode());
-        System.out.println("  Fix Class:     " + config.isFixClass());
-        System.out.println("  Inner JARs:    " + config.isJarsInJar());
-        System.out.println("  Fix Impl:      " + config.isFixMethodImpl());
-        System.out.println("  Black List:    " + (config.getClassBlackList() != null ? "set" : "none"));
-        System.out.println("  White List:    " + (config.getClassWhiteList() != null ? "set" : "none"));
-        System.out.println();
+        logger.info("Configuration:");
+        logger.info("  JAR Path:      {}", config.getJarPath());
+        logger.info("  DB Path:       jar-analyzer.db");
+        logger.info("  Temp Dir:      {}", EngineConst.tempDir);
+        logger.info("  Quick Mode:    {}", config.isQuickMode());
+        logger.info("  Fix Class:     {}", config.isFixClass());
+        logger.info("  Inner JARs:    {}", config.isJarsInJar());
+        logger.info("  Fix Impl:      {}", config.isFixMethodImpl());
+        logger.info("  Black List:    {}", config.getClassBlackList() != null ? "set" : "none");
+        logger.info("  White List:    {}", config.getClassWhiteList() != null ? "set" : "none");
 
         long startTime = System.currentTimeMillis();
 
@@ -129,9 +127,8 @@ public class EngineMain {
         }
 
         long elapsed = System.currentTimeMillis() - startTime;
-        System.out.println();
-        System.out.println("=== Build Complete ===");
-        System.out.printf("Time elapsed: %.2f seconds%n", elapsed / 1000.0);
-        System.out.println("Database: jar-analyzer.db");
+        logger.info("=== Build Complete ===");
+        logger.info("Time elapsed: {} seconds", String.format("%.2f", elapsed / 1000.0));
+        logger.info("Database: jar-analyzer.db");
     }
 }

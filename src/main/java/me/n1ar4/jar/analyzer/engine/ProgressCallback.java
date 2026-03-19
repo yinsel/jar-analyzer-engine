@@ -10,6 +10,9 @@
 
 package me.n1ar4.jar.analyzer.engine;
 
+import me.n1ar4.jar.analyzer.engine.log.LogManager;
+import me.n1ar4.jar.analyzer.engine.log.Logger;
+
 /**
  * 引擎构建进度回调
  * GUI 模式下可用于更新进度条和日志面板
@@ -47,29 +50,31 @@ public interface ProgressCallback {
      * 默认的控制台回调（CLI 模式使用）
      */
     ProgressCallback CONSOLE = new ProgressCallback() {
+        private final Logger logger = LogManager.getLogger();
+
         @Override
         public void onProgress(int percent) {
-            System.out.printf("[ENGINE] Progress: %d%%\n", percent);
+            logger.info("[ENGINE] Progress: {}%", percent);
         }
 
         @Override
         public void onInfo(String message) {
-            System.out.printf("[ENGINE] INFO: %s\n", message);
+            logger.info("[ENGINE] INFO: {}", message);
         }
 
         @Override
         public void onWarn(String message) {
-            System.out.printf("[ENGINE] WARN: %s\n", message);
+            logger.warn("[ENGINE] WARN: {}", message);
         }
 
         @Override
         public void onError(String message) {
-            System.err.printf("[ENGINE] ERROR: %s\n", message);
+            logger.error("[ENGINE] ERROR: {}", message);
         }
 
         @Override
         public void onStats(String key, String value) {
-            System.out.printf("[ENGINE] %s: %s\n", key, value);
+            logger.info("[ENGINE] {}: {}", key, value);
         }
     };
 }
