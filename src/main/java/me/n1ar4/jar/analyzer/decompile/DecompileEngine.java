@@ -11,8 +11,6 @@
 package me.n1ar4.jar.analyzer.decompile;
 
 import me.n1ar4.jar.analyzer.engine.EngineConst;
-import me.n1ar4.jar.analyzer.engine.log.LogManager;
-import me.n1ar4.jar.analyzer.engine.log.Logger;
 import org.jetbrains.java.decompiler.main.decompiler.ConsoleDecompiler;
 
 import java.io.IOException;

@@ -38,12 +38,4 @@ public interface InitMapper {
     void createSpringInterceptorTable();
 
     void createJavaWebTable();
-
-    void createDFSResultTable();
-
-    void createDFSResultListTable();
-
-    void createFavoriteTable();
-
-    void createHistoryTable();
 }

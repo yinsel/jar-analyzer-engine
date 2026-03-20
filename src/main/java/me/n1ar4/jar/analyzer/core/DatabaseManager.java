@@ -99,10 +99,6 @@ public class DatabaseManager {
         initMapper.createSpringMappingTable();
         initMapper.createSpringInterceptorTable();
         initMapper.createJavaWebTable();
-        initMapper.createDFSResultTable();
-        initMapper.createDFSResultListTable();
-        initMapper.createFavoriteTable();
-        initMapper.createHistoryTable();
         logger.info("create database finish");
     }
 
