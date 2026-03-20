@@ -90,7 +90,6 @@ public class EngineConfig {
         this.rtJarPath = rtJarPath;
     }
 
-
     public String getClassBlackList() {
         return classBlackList;
     }

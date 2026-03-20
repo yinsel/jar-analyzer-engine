@@ -18,6 +18,7 @@ import me.n1ar4.jar.analyzer.engine.log.Logger;
  * GUI 模式下可用于更新进度条和日志面板
  * CLI 模式下可用于打印进度信息
  */
+@SuppressWarnings("all")
 public interface ProgressCallback {
     /**
      * 更新进度百分比

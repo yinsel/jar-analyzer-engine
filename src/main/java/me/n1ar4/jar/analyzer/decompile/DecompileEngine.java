@@ -15,23 +15,22 @@ import me.n1ar4.jar.analyzer.engine.log.LogManager;
 import me.n1ar4.jar.analyzer.engine.log.Logger;
 import org.jetbrains.java.decompiler.main.decompiler.ConsoleDecompiler;
 
-import java.io.*;
+import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Decompile Engine
  */
 public class DecompileEngine {
-    private static final Logger logger = LogManager.getLogger();
     private static final String JAVA_DIR = "jar-analyzer-decompile";
     private static final String JAVA_FILE = ".java";
     private static final String FERN_PREFIX = "//\n" +
-            "// Jar Analyzer by 4ra1n\n" +
+            "// Jar Analyzer Engine by 4ra1n\n" +
             "// (powered by FernFlower decompiler)\n" +
             "//\n";
-    private static final LRUCache lruCache = new LRUCache();
 
     /**
      * CLI 模式：从 temp 目录中反编译指定的 class 并返回源码字符串
@@ -176,153 +175,5 @@ public class DecompileEngine {
             System.err.println("Error: decompilation produced no output for: " + className);
             return null;
         }
-    }
-
-    /**
-     * 反编译整个 JAR 中的所有类到指定输出目录
-     *
-     * @param jarsPath  JAR 文件路径列表
-     * @param outputDir 反编译输出目录
-     * @return 是否成功
-     */
-    public static boolean decompileJars(List<String> jarsPath, String outputDir) {
-        for (String jarPath : jarsPath) {
-            if (!jarPath.toLowerCase().endsWith(".jar")) {
-                logger.warn("only support JAR file: " + jarPath);
-                return false;
-            }
-
-            List<String> cmd = new ArrayList<>();
-            Path jarPathPath = Paths.get(jarPath);
-            cmd.add(jarPathPath.toAbsolutePath().toString());
-            Path path = Paths.get(outputDir);
-            try {
-                Files.createDirectories(path);
-            } catch (Exception ignored) {
-            }
-            cmd.add(path.toAbsolutePath().toString());
-
-            logger.info("decompile jar: " + jarPath);
-            logger.info("output dir: " + outputDir);
-
-            // FERN FLOWER API
-            ConsoleDecompiler.main(cmd.toArray(new String[0]));
-
-            // HACK NAME
-            String jarName = jarPathPath.getFileName().toString();
-            String zipName = jarName.replaceAll("\\.jar$", ".zip");
-            Path oldPath = path.toAbsolutePath().resolve(jarName);
-            Path newPath = path.toAbsolutePath().resolve(zipName);
-
-            try {
-                Files.move(oldPath, newPath);
-                System.out.println("file renamed to: " + newPath);
-            } catch (Exception ignored) {
-            }
-        }
-        return true;
-    }
-
-    /**
-     * 反编译指定的 class 文件（通过文件路径）
-     *
-     * @param classFilePath Class 文件路径
-     * @return Java 源代码，失败返回 null
-     */
-    public static String decompile(Path classFilePath) {
-        try {
-            // USE LRU CACHE
-            String key = classFilePath.toAbsolutePath().toString();
-            String data = lruCache.get(key);
-            if (data != null && !data.isEmpty()) {
-                logger.debug("use cache");
-                return data;
-            }
-
-            Path dirPath = classFilePath.getParent();
-            if (dirPath == null) {
-                return null;
-            }
-            Path deDirPath = dirPath.resolve(JAVA_DIR);
-            if (!Files.exists(deDirPath)) {
-                Files.createDirectory(deDirPath);
-            }
-            String javaDir = deDirPath.toAbsolutePath().toString();
-            String fileName = classFilePath.getFileName().toString();
-
-            if (!fileName.endsWith(".class")) {
-                logger.warn("not a class file: " + fileName);
-                return null;
-            }
-
-            String[] split = fileName.split("\\.");
-            if (split.length < 2) {
-                throw new RuntimeException("decompile error");
-            }
-            String newFileName = split[0] + JAVA_FILE;
-            Path newFilePath = deDirPath.resolve(newFileName);
-            // TRY DELETE CACHE
-            try {
-                Files.delete(newFilePath);
-            } catch (Exception ignored) {
-            }
-
-            // RESOLVE $ CLASS
-            List<String> extraClassList = new ArrayList<>();
-            Path classDirPath = classFilePath.getParent();
-            String classNamePrefix = classFilePath.getFileName().toString();
-            classNamePrefix = classNamePrefix.split("\\.")[0];
-
-            String finalClassNamePrefix = classNamePrefix;
-
-            if (!Files.exists(classDirPath)) {
-                logger.warn("class directory does not exist: " + classDirPath);
-                return null;
-            }
-
-            Files.walkFileTree(classDirPath, new SimpleFileVisitor<Path>() {
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-                    String fn = file.getFileName().toString();
-                    if (fn.startsWith(finalClassNamePrefix + "$")) {
-                        extraClassList.add(file.toAbsolutePath().toString());
-                    }
-                    return FileVisitResult.CONTINUE;
-                }
-            });
-
-            List<String> cmd = new ArrayList<>();
-            cmd.add(classFilePath.toAbsolutePath().toString());
-            cmd.addAll(extraClassList);
-            cmd.add(javaDir);
-
-            logger.info("decompile class: " + classFilePath.getFileName().toString());
-
-            try {
-                // FERN FLOWER API
-                ConsoleDecompiler.main(cmd.toArray(new String[0]));
-            } catch (Throwable t) {
-                logger.warn("fern flower fail: " + t.getMessage());
-            }
-
-            if (Files.exists(newFilePath)) {
-                byte[] code = Files.readAllBytes(newFilePath);
-                String codeStr = new String(code);
-                codeStr = FERN_PREFIX + codeStr;
-                // TRY DELETE CACHE
-                try {
-                    Files.delete(newFilePath);
-                } catch (Exception ignored) {
-                }
-                logger.debug("save cache");
-                lruCache.put(key, codeStr);
-                return codeStr;
-            } else {
-                return null;
-            }
-        } catch (Exception ex) {
-            logger.warn("decompile fail: " + ex.getMessage());
-        }
-        return null;
     }
 }

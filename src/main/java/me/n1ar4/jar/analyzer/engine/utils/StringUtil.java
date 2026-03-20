@@ -11,6 +11,7 @@
 package me.n1ar4.jar.analyzer.engine.utils;
 
 public class StringUtil {
+    @SuppressWarnings("all")
     public static boolean isNull(String str) {
         if (str == null) {
             return true;

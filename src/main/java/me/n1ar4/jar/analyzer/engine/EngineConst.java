@@ -18,17 +18,12 @@ import org.objectweb.asm.Opcodes;
  */
 public interface EngineConst {
     String version = "1.0.0";
-
     int ASMVersion = Opcodes.ASM9;
-
-    int GlobalASMOptions = ClassReader.SKIP_FRAMES | ClassReader.SKIP_DEBUG;
     int AnalyzeASMOptions = ClassReader.EXPAND_FRAMES;
-
     /**
      * Fallback ASM option for handling corrupted StackMapTable class files.
      */
     int FallbackASMOptions = ClassReader.SKIP_FRAMES;
-
     String dbFile = "jar-analyzer.db";
     String tempDir = "jar-analyzer-temp";
 }

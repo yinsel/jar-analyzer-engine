@@ -22,7 +22,7 @@ import org.objectweb.asm.ClassVisitor;
  * Engine version - no GUI dependency.
  */
 public class StackMapFrameHandler {
-
+    @SuppressWarnings("all")
     public static boolean handleParseException(ClassFileEntity file, ClassVisitor visitor,
                                                Logger logger, String context,
                                                IndexOutOfBoundsException e) {
@@ -69,13 +69,5 @@ public class StackMapFrameHandler {
             }
         }
         return false;
-    }
-
-    public static boolean isCorruptedStackMapTable(IndexOutOfBoundsException e) {
-        return e.getMessage() != null && e.getMessage().contains("out of bounds");
-    }
-
-    public static void trackCorruptedFile(String jarName, String className, String errorMessage) {
-        AnalyzeEnv.corruptedFiles.add(jarName + "!" + className + " [" + errorMessage + "]");
     }
 }
