@@ -11,6 +11,7 @@
 package me.n1ar4.jar.analyzer.engine;
 
 import com.beust.jcommander.JCommander;
+import me.n1ar4.jar.analyzer.decompile.DecompileEngine;
 import me.n1ar4.jar.analyzer.engine.log.LogManager;
 import me.n1ar4.jar.analyzer.engine.log.Logger;
 
@@ -44,6 +45,42 @@ public class EngineMain {
 
         if (cmd.help) {
             jc.usage();
+            return;
+        }
+
+        // Decompile mode: --decompile/-d
+        if (cmd.decompileClassName != null && !cmd.decompileClassName.isEmpty()) {
+            // 如果指定了 --jar 且 temp 目录不存在，先执行 build 解压 class 文件
+            Path tempDir = Paths.get(EngineConst.tempDir);
+            if (!Files.exists(tempDir) && cmd.jarPath != null && !cmd.jarPath.isEmpty()) {
+                Path buildJarPath = Paths.get(cmd.jarPath);
+                if (!Files.exists(buildJarPath)) {
+                    logger.error("Error: JAR path does not exist: {}", cmd.jarPath);
+                    System.exit(1);
+                    return;
+                }
+                logger.info("temp dir not found, building from JAR first: {}", cmd.jarPath);
+                EngineConfig config = new EngineConfig();
+                config.setJarPath(buildJarPath);
+                config.setQuickMode(true);
+                config.setFixMethodImpl(true);
+                config.setProgressCallback(ProgressCallback.CONSOLE);
+                try {
+                    EngineBuildRunner.run(config);
+                } catch (Exception e) {
+                    logger.error("build failed: {}", e.toString());
+                    System.exit(1);
+                    return;
+                }
+            }
+            logger.info("Decompile mode: class={}", cmd.decompileClassName);
+            String sourceCode = DecompileEngine.decompileClass(cmd.decompileClassName);
+            if (sourceCode != null) {
+                System.out.println(sourceCode);
+            } else {
+                logger.error("Failed to decompile class: {}", cmd.decompileClassName);
+                System.exit(1);
+            }
             return;
         }
 

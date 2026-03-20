@@ -22,7 +22,7 @@
 
 > [English Version](README_EN.md)
 
-[更新日志](CHANGLOG.md)
+[更新日志](CHANGELOG.md)
 
 ## 📖 简介
 
@@ -47,6 +47,7 @@
 - 📦 **Spring Boot / WAR 支持** — 嵌套 JAR 解析、类名修正，完美适配 Fat JAR
 - 🛡️ **安全防护** — 内置 Zip Slip 路径穿越攻击防御，损坏类文件自动容错
 - 🔌 **双模式使用** — 既可作为 CLI 工具独立运行，也可作为 Java 库集成到项目中
+- 🔓 **内置反编译** — 集成 FernFlower 反编译引擎，支持 CLI 直接反编译指定类并输出源码
 
 ## 🚀 快速开始
 
@@ -76,6 +77,11 @@ java -jar jar-analyzer-engine.jar --jar /path/to/app.jar
 # 分析目录下所有 JAR
 java -jar jar-analyzer-engine.jar --jar /path/to/libs/
 
+# 反编译指定类（需先 build 或指定 --jar 自动 build）
+java -jar jar-analyzer-engine.jar --decompile com.example.MyClass
+
+# 首次使用，自动 build + 反编译
+java -jar jar-analyzer-engine.jar --jar /path/to/app.jar --decompile com.example.MyClass
 ```
 
 分析完成后将在当前目录生成 SQLite 数据库文件 `jar-analyzer.db`，可使用任何 SQLite 客户端工具查询。分析过程中的临时文件存放在 `jar-analyzer-temp` 目录中，分析完成后可手动删除。
@@ -101,6 +107,7 @@ java -jar jar-analyzer-engine.jar --jar /path/to/libs/
 | `--white-list <text>` | `-w` | 无 | 类/包白名单（内联文本） |
 | `--black-list-file <file>` | — | 无 | 从文件读取黑名单 |
 | `--white-list-file <file>` | — | 无 | 从文件读取白名单 |
+| `--decompile <class>` | `-d` | 无 | 反编译指定类并输出源码到控制台（如 `com.example.MyClass`） |
 | `--help` | `-h` | — | 显示帮助信息 |
 
 ## 📚 参数详解
@@ -196,6 +203,28 @@ java -jar jar-analyzer-engine.jar --jar springboot-app.jar --inner-jars --fix-cl
 ```bash
 # 仅记录直接调用，不自动关联子类 override 方法
 java -jar jar-analyzer-engine.jar --jar app.jar --no-fix-impl
+```
+
+### `--decompile` / `-d`（反编译模式）
+
+指定一个类的全限定名，引擎会从 `jar-analyzer-temp` 临时目录中查找对应的 class 文件，使用内置的 FernFlower 反编译引擎将其反编译为 Java 源码，并输出到控制台。
+
+支持的类名格式：
+- 点分隔：`com.example.service.UserService`
+- 斜杠分隔：`com/example/service/UserService`
+
+引擎会自动处理以下情况：
+- **Spring Boot Fat JAR**：自动搜索 `BOOT-INF/classes/` 前缀
+- **WAR 文件**：自动搜索 `WEB-INF/classes/` 前缀
+- **内部类**：自动包含 `$` 内部类文件一起反编译
+- **模糊匹配**：找不到类时会搜索 temp 目录给出 "Did you mean?" 候选建议
+
+```bash
+# 已 build 过（temp 目录存在），直接反编译
+java -jar jar-analyzer-engine.jar --decompile com.example.MyClass
+
+# 首次使用，自动 build + 反编译
+java -jar jar-analyzer-engine.jar --jar app.jar --decompile com.example.MyClass
 ```
 
 ### 黑白名单过滤
@@ -472,6 +501,19 @@ java -jar jar-analyzer-engine.jar \
   --rt /usr/lib/jvm/java-8-openjdk/jre/lib/rt.jar
 ```
 
+### 6. 反编译指定类查看源码
+
+```bash
+# 分析 + 反编译一步完成
+java -jar jar-analyzer-engine.jar \
+  --jar app.jar \
+  --decompile com.example.service.UserService
+
+# 已 build 过，直接反编译
+java -jar jar-analyzer-engine.jar \
+  --decompile com.example.service.UserService
+```
+
 ## 🤖 与 AI 集成进行代码审计
 
 生成的 SQLite 数据库天然适合与 AI 工具结合使用，以下是推荐的工作流：
@@ -578,6 +620,9 @@ jar-analyzer-engine/
 │   │   ├── mapper/                  #   MyBatis Mapper 接口 (15个)
 │   │   └── reference/               #   核心数据模型
 │   ├── entity/                      # 数据库实体类 (18个)
+│   ├── decompile/                   # 反编译模块
+│   │   ├── DecompileEngine.java     #   FernFlower 反编译封装
+│   │   └── LRUCache.java            #   反编译结果 LRU 缓存
 │   └── analyze/spring/              # Spring 框架分析
 │       ├── SpringService.java       #   Spring 分析入口
 │       └── asm/                     #   Spring 注解 ASM 访问器

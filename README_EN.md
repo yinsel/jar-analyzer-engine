@@ -45,6 +45,7 @@ The engine is built on the **ASM bytecode analysis framework** and uses a **mult
 - 📦 **Spring Boot / WAR Support** — Nested JAR parsing and class name correction, perfectly adapted for Fat JARs
 - 🛡️ **Security Protection** — Built-in Zip Slip path traversal attack defense with automatic error tolerance for corrupted class files
 - 🔌 **Dual-Mode Usage** — Works as both a standalone CLI tool and an embeddable Java library
+- 🔓 **Built-in Decompilation** — Integrated FernFlower decompiler engine, supports CLI decompilation of specific classes with source code output
 
 ## 🚀 Quick Start
 
@@ -74,6 +75,11 @@ java -jar jar-analyzer-engine.jar --jar /path/to/app.jar
 # Analyze all JARs in a directory
 java -jar jar-analyzer-engine.jar --jar /path/to/libs/
 
+# Decompile a specific class (requires prior build or --jar for auto build)
+java -jar jar-analyzer-engine.jar --decompile com.example.MyClass
+
+# First time use: auto build + decompile
+java -jar jar-analyzer-engine.jar --jar /path/to/app.jar --decompile com.example.MyClass
 ```
 
 After analysis, a SQLite database file `jar-analyzer.db` will be generated in the current directory and can be queried with any SQLite client tool. Temporary files during analysis are stored in the `jar-analyzer-temp` directory, which can be manually deleted after analysis completes.
@@ -99,6 +105,7 @@ After analysis, a SQLite database file `jar-analyzer.db` will be generated in th
 | `--white-list <text>` | `-w` | None | Class/package whitelist (inline text) |
 | `--black-list-file <file>` | — | None | Read blacklist from file |
 | `--white-list-file <file>` | — | None | Read whitelist from file |
+| `--decompile <class>` | `-d` | None | Decompile a specific class and print source to console (e.g. `com.example.MyClass`) |
 | `--help` | `-h` | — | Display help information |
 
 ## 📚 Argument Details
@@ -194,6 +201,28 @@ Enabling `--no-fix-impl` disables this behavior, keeping only the **literal dire
 ```bash
 # Record only direct calls, without automatically linking subclass override methods
 java -jar jar-analyzer-engine.jar --jar app.jar --no-fix-impl
+```
+
+### `--decompile` / `-d` (Decompile Mode)
+
+Specify a fully-qualified class name, and the engine will locate the corresponding class file in the `jar-analyzer-temp` directory, decompile it to Java source code using the built-in FernFlower decompiler, and output the result to the console.
+
+Supported class name formats:
+- Dot-separated: `com.example.service.UserService`
+- Slash-separated: `com/example/service/UserService`
+
+The engine automatically handles:
+- **Spring Boot Fat JAR**: Searches under `BOOT-INF/classes/` prefix
+- **WAR files**: Searches under `WEB-INF/classes/` prefix
+- **Inner classes**: Automatically includes `$` inner class files for decompilation
+- **Fuzzy matching**: When the class is not found, searches the temp directory and provides "Did you mean?" suggestions
+
+```bash
+# Already built (temp directory exists), decompile directly
+java -jar jar-analyzer-engine.jar --decompile com.example.MyClass
+
+# First time use: auto build + decompile
+java -jar jar-analyzer-engine.jar --jar app.jar --decompile com.example.MyClass
 ```
 
 ### Blacklist & Whitelist Filtering
@@ -473,6 +502,19 @@ java -jar jar-analyzer-engine.jar \
   --rt /usr/lib/jvm/java-8-openjdk/jre/lib/rt.jar
 ```
 
+### 6. Decompile a Specific Class
+
+```bash
+# Analyze + decompile in one step
+java -jar jar-analyzer-engine.jar \
+  --jar app.jar \
+  --decompile com.example.service.UserService
+
+# Already built, decompile directly
+java -jar jar-analyzer-engine.jar \
+  --decompile com.example.service.UserService
+```
+
 ## 🤖 AI Integration for Code Auditing
 
 The generated SQLite database is naturally suited for use with AI tools. Here is the recommended workflow:
@@ -579,6 +621,9 @@ jar-analyzer-engine/
 │   │   ├── mapper/                  #   MyBatis Mapper interfaces (15)
 │   │   └── reference/               #   Core data models
 │   ├── entity/                      # Database entity classes (18)
+│   ├── decompile/                   # Decompilation module
+│   │   ├── DecompileEngine.java     #   FernFlower decompiler wrapper
+│   │   └── LRUCache.java            #   Decompilation result LRU cache
 │   └── analyze/spring/              # Spring framework analysis
 │       ├── SpringService.java       #   Spring analysis entry point
 │       └── asm/                     #   Spring annotation ASM visitors

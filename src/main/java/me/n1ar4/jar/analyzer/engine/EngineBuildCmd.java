@@ -48,6 +48,9 @@ public class EngineBuildCmd {
     @Parameter(names = {"--no-fix-impl"}, description = "Disable automatic method implementation fix (not recommended)")
     public boolean noFixMethodImpl = false;
 
+    @Parameter(names = {"--decompile", "-d"}, description = "Decompile a class from JAR and print source to console (e.g. com.example.MyClass)")
+    public String decompileClassName;
+
     @Parameter(names = {"--help", "-h"}, help = true, description = "Show help message")
     public boolean help;
 }
