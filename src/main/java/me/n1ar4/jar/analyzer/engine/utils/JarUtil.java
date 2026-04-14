@@ -81,15 +81,13 @@ public class JarUtil {
 
     private static boolean shouldRun(String whiteText, String blackText, String saveClass) {
         boolean whiteDoIt = false;
-
-        // Normalize saveClass: strip .class suffix and fix BOOT-INF/WEB-INF paths
         if (saveClass.contains("BOOT-INF") || saveClass.contains("WEB-INF")) {
             int i = saveClass.indexOf("classes");
             if (i >= 0) {
-                // e.g. "BOOT-INF/classes/com/example/Foo.class" -> "com/example/Foo"
                 saveClass = saveClass.substring(i + 8);
             }
         }
+
         if (saveClass.endsWith(".class")) {
             saveClass = saveClass.substring(0, saveClass.length() - 6);
         }
@@ -100,17 +98,11 @@ public class JarUtil {
                 whiteDoIt = true;
             } else {
                 String className = saveClass;
-                for (String s : data) {
-                    if (s.endsWith("/")) {
-                        if (className.startsWith(s)) {
-                            whiteDoIt = true;
-                            break;
-                        }
-                    } else {
-                        if (className.equals(s)) {
-                            whiteDoIt = true;
-                            break;
-                        }
+
+                for(String s : data) {
+                    if (globMatch(s, className)) {
+                        whiteDoIt = true;
+                        break;
                     }
                 }
             }
@@ -120,28 +112,37 @@ public class JarUtil {
 
         if (!whiteDoIt) {
             return false;
-        }
+        } else {
+            boolean doIt = true;
+            if (blackText != null && !StringUtil.isNull(blackText)) {
+                ArrayList<String> data = ListParser.parse(blackText);
+                String className = saveClass;
 
-        boolean doIt = true;
-        if (blackText != null && !StringUtil.isNull(blackText)) {
-            ArrayList<String> data = ListParser.parse(blackText);
-            String className = saveClass;
-            for (String s : data) {
-                if (className.equals(s)) {
-                    doIt = false;
-                    break;
-                }
-                if (s.endsWith("/")) {
-                    if (className.startsWith(s)) {
+                for(String s : data) {
+                    if (globMatch(s, className)) {
                         doIt = false;
                         break;
                     }
                 }
             }
-        }
 
-        if (!doIt) {
-            return false;
+            return doIt;
+        }
+    }
+
+    private static boolean globMatch(String pattern, String text) {
+        String[] parts = pattern.split("\\*\\*");
+        int idx = 0;
+
+        for(String part : parts) {
+            if (!part.isEmpty()) {
+                int pos = text.indexOf(part, idx);
+                if (pos == -1) {
+                    return false;
+                }
+
+                idx = pos + part.length();
+            }
         }
 
         return true;
@@ -152,6 +153,9 @@ public class JarUtil {
         String text = blackListText;
         String whiteText = whiteListText;
         Path jarPath = Paths.get(jarPathStr);
+        Path classesDir = tmpDir.resolve("classes");
+        Path jarsDir = tmpDir.resolve("jars");
+        Path resourcesDir = tmpDir.resolve("resources");
         if (!Files.exists(jarPath)) {
             logger.error("jar not exist");
             return;
@@ -204,7 +208,7 @@ public class JarUtil {
                     classFile.setJarName("class");
                     localClassFileSet.add(classFile);
 
-                    Path fullPath = tmpDir.resolve(jarPathStr);
+                    Path fullPath = classesDir.resolve(jarPathStr);
                     Path parPath = fullPath.getParent();
                     if (!Files.exists(parPath)) {
                         Files.createDirectories(parPath);
@@ -240,6 +244,7 @@ public class JarUtil {
                     Path fullPath = tmpDir.resolve(jarEntryName);
                     if (!jarEntry.isDirectory()) {
                         if (isConfigFile(jarEntryName)) {
+                            fullPath = resourcesDir.resolve(jarEntryName);
                             Path dirName = fullPath.getParent();
                             if (!Files.exists(dirName)) {
                                 Files.createDirectories(dirName);
@@ -259,6 +264,7 @@ public class JarUtil {
                         if (!jarEntry.getName().endsWith(".class")) {
                             if (AnalyzeEnv.jarsInJar && jarEntry.getName().endsWith(".jar")) {
                                 logger.info("analyze jars in jar: {}", jarEntry.getName());
+                                fullPath = jarsDir.resolve(jarEntryName);
                                 Path dirName = fullPath.getParent();
                                 if (!Files.exists(dirName)) {
                                     Files.createDirectories(dirName);
@@ -280,6 +286,7 @@ public class JarUtil {
                             continue;
                         }
 
+                        fullPath = classesDir.resolve(jarEntryName);
                         Path dirName = fullPath.getParent();
                         if (!Files.exists(dirName)) {
                             Files.createDirectories(dirName);
@@ -314,6 +321,8 @@ public class JarUtil {
         try {
             ZipFile jarFile = new ZipFile(jarPath);
             Enumeration<? extends ZipArchiveEntry> entries = jarFile.getEntries();
+            Path resourcesDir = tmpDir.resolve("resources");
+            Path classesDir = tmpDir.resolve("classes");
             while (entries.hasMoreElements()) {
                 ZipArchiveEntry jarEntry = entries.nextElement();
                 String jarEntryName = jarEntry.getName();
@@ -330,6 +339,7 @@ public class JarUtil {
                 Path fullPath = tmpDir.resolve(jarEntryName);
                 if (!jarEntry.isDirectory()) {
                     if (isConfigFile(jarEntryName)) {
+                        fullPath = resourcesDir.resolve(jarEntryName);
                         Path dirName = fullPath.getParent();
                         if (!Files.exists(dirName)) {
                             Files.createDirectories(dirName);
@@ -354,6 +364,7 @@ public class JarUtil {
                         continue;
                     }
 
+                    fullPath = classesDir.resolve(jarEntryName);
                     Path dirName = fullPath.getParent();
                     if (!Files.exists(dirName)) {
                         Files.createDirectories(dirName);
